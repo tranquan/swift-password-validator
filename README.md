@@ -1,2 +1,3 @@
-# swift-password-validator
-Password validator for Swift
+# SwiftPasswordValidator
+
+A description of this package.
