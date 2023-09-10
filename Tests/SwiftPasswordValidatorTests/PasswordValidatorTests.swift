@@ -26,7 +26,7 @@ final class PasswordValidatorTests: XCTestCase {
 	}
 	
 	func testHasUppercase() throws {
-		let validator = PasswordValidatorBuilder().hasUppercae().build()
+		let validator = PasswordValidatorBuilder().hasUppercase().build()
 		XCTAssertEqual(validator.validate("abc").success, false)
 		XCTAssertEqual(validator.validate("A").success, true)
 		XCTAssertEqual(validator.validate("Б").success, true)

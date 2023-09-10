@@ -91,7 +91,7 @@ public class PasswordValidatorBuilder {
 		)
 	}
 	
-	public func hasUppercae(error: String? = nil) -> Self {
+	public func hasUppercase(error: String? = nil) -> Self {
 		return self.hasRegex(
 			regex: #"^(?=.*[\p{Lu}])"#,
 			flags: "u",
