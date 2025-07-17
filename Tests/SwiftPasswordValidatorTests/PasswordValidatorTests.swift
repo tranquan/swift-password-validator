@@ -74,4 +74,46 @@ final class PasswordValidatorTests: XCTestCase {
 		XCTAssertEqual(length20.validate("1234567890abcdefghijk").success, true)
 		XCTAssertEqual(length20.validate("1234567890123456789 ").success, true)
 	}
+	
+	func testMultiCriteriaValidation() throws {
+		let validator = PasswordValidatorBuilder()
+			.hasLowercase()
+			.hasUppercase()
+			.hasNumbers()
+			.hasSymbols()
+			.hasLength(8)
+			.build()
+		
+		// Test password that should pass all criteria
+		let strongPassword = "StrongPass1!"
+		let strongResult = validator.validate(strongPassword)
+		XCTAssertTrue(strongResult.success)
+		XCTAssertEqual(strongResult.passedTests.count, 5)
+		XCTAssertEqual(strongResult.failedTests.count, 0)
+		XCTAssertEqual(strongResult.errors.count, 0)
+		
+		// Test password that should fail multiple criteria
+		let weakPassword = "weak"
+		let weakResult = validator.validate(weakPassword)
+		XCTAssertFalse(weakResult.success)
+		XCTAssertTrue(weakResult.failedTests.count > 0)
+		XCTAssertTrue(weakResult.errors.count > 0)
+		
+		// Test password that fails only one criterion (no symbols)
+		let almostStrongPassword = "StrongPass1"
+		let almostStrongResult = validator.validate(almostStrongPassword)
+		XCTAssertFalse(almostStrongResult.success)
+		XCTAssertTrue(almostStrongResult.passedTests.count == 4)
+		XCTAssertTrue(almostStrongResult.failedTests.count == 1)
+		XCTAssertTrue(almostStrongResult.failedTests.contains("hasSymbols"))
+	}
+	
+	func testEmptyValidatorAlwaysSucceeds() throws {
+		let emptyValidator = PasswordValidatorBuilder().build()
+		let result = emptyValidator.validate("anypassword")
+		XCTAssertTrue(result.success)
+		XCTAssertEqual(result.passedTests.count, 0)
+		XCTAssertEqual(result.failedTests.count, 0)
+		XCTAssertEqual(result.errors.count, 0)
+	}
 }

@@ -5,8 +5,7 @@
 //  Based on: https://github.com/astrideducation/npm-packages/blob/main/packages/password-validator
 //
 
-import Swift
-import JavaScriptCore
+import Foundation
 
 public struct PasswordTest {
 	public let testId: String
@@ -33,8 +32,8 @@ public struct PasswordValidator {
 	let tests: [PasswordTest]
 	
 	public func validate(_ password: String) -> PasswordValidatorResult {
-		let initialResult = PasswordValidatorResult(success: false, passedTests: [], failedTests: [], errors: [])
-		return self.tests.reduce(initialResult) { result, test in
+		let initialResult = PasswordValidatorResult(success: true, passedTests: [], failedTests: [], errors: [])
+		let finalResult = self.tests.reduce(initialResult) { result, test in
 			let passed = test.test(password)
 			
 			let passedTests = passed ? result.passedTests + [test.testId] : result.passedTests
@@ -42,12 +41,13 @@ public struct PasswordValidator {
 			let errors = !passed ? result.errors + [test.error] : result.errors
 			
 			return PasswordValidatorResult(
-				success: passed,
+				success: result.success && passed,
 				passedTests: passedTests,
 				failedTests: failedTests,
 				errors: errors
 			)
 		}
+		return finalResult
 	}
 }
 
@@ -64,19 +64,29 @@ public class PasswordValidatorBuilder {
 	
 	public func hasRegex(regex: String, flags: String, testId: String, error: String) -> Self {
 		self.tests.append(PasswordTest(testId: testId, test: { password in
-			if #available(macOS 13.0, *) {
+			if #available(macOS 13.0, iOS 16.0, watchOS 9.0, tvOS 16.0, *) {
 				guard let regex = try? Regex(regex) else { return false }
 				return password.contains(regex)
 			} else {
-				// fallback to JS regex
-				guard let jsContext = JSContext() else { return false }
-				
-				let jsScript = "var regexTest = function(regex, flags, password) { return new RegExp(regex, flags).test(password); }"
-				jsContext.evaluateScript(jsScript)
-				let result = jsContext.objectForKeyedSubscript("regexTest").call(withArguments: [regex, flags, password])
-				
-				guard let result = result else { return false }
-				return result.toBool()
+				// fallback to NSRegularExpression for cross-platform compatibility
+				do {
+					var options: NSRegularExpression.Options = []
+					if flags.contains("i") {
+						options.insert(.caseInsensitive)
+					}
+					if flags.contains("m") {
+						options.insert(.anchorsMatchLines)
+					}
+					if flags.contains("s") {
+						options.insert(.dotMatchesLineSeparators)
+					}
+					
+					let nsRegex = try NSRegularExpression(pattern: regex, options: options)
+					let range = NSRange(location: 0, length: password.utf16.count)
+					return nsRegex.firstMatch(in: password, options: [], range: range) != nil
+				} catch {
+					return false
+				}
 			}
 		}, error: error))
 		return self
